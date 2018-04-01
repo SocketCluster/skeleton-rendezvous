@@ -124,9 +124,9 @@ describe('Distribution', function () {
       assert.equal(result.stats.diff < 1.3, true);
     });
 
-    it('should take less than 400 ms to complete on a decent machine', function () {
+    it('should take less than 500 ms to complete on a decent machine', function () {
       testUtils.log(`Duration: ${result.stats.duration} ms`);
-      assert.equal(result.stats.duration < 400, true);
+      assert.equal(result.stats.duration < 500, true);
     });
   });
 
