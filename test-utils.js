@@ -1,7 +1,8 @@
 module.exports = {
   generateStringList: generateStringList,
   findKeySites: findKeySites,
-  getDiffStats: getDiffStats
+  getDiffStats: getDiffStats,
+  log: log
 };
 
 function generateStringList(baseString, count) {
@@ -87,14 +88,18 @@ function getDiffStats(resultA, resultB) {
 
   var keyToSiteMapA = {};
   Object.keys(siteMapA).forEach((site) => {
-    var key = siteMapA[site];
-    keyToSiteMapA[key] = site;
+    var keyList = siteMapA[site] || [];
+    keyList.forEach((key) => {
+      keyToSiteMapA[key] = site;
+    });
   });
 
   var keyToSiteMapB = {};
   Object.keys(siteMapB).forEach((site) => {
-    var key = siteMapB[site];
-    keyToSiteMapB[key] = site;
+    var keyList = siteMapB[site] || [];
+    keyList.forEach((key) => {
+      keyToSiteMapB[key] = site;
+    });
   });
 
   var keyLookup = {};
@@ -122,4 +127,8 @@ function getDiffStats(resultA, resultB) {
     keyList: Object.keys(keyLookup),
     diffKeyList: Object.keys(diffKeyLookup)
   };
+}
+
+function log() {
+  console.log('        \u001b[2m' + Array.prototype.join.call(arguments, ' ') + '\u001b[22m');
 }

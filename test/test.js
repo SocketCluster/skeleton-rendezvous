@@ -1,6 +1,6 @@
 var assert = require('assert');
-var SRH = require('skeleton-rendezvous');
 var testUtils = require('../test-utils');
+var SRH = require('skeleton-rendezvous');
 var srh;
 var srhB;
 var keyList;
@@ -42,7 +42,7 @@ describe('Distribution', function () {
     });
   });
 
-  describe('SRH distributes 1000 keys between 3 sites after one new site is added', function () {
+  describe('SRH distributes 1000 keys between 4 sites after one new site is added', function () {
     beforeEach(function () {
       keyList = testUtils.generateStringList('somekey', 1000);
       siteList = testUtils.generateStringList('host', 3);
@@ -57,13 +57,42 @@ describe('Distribution', function () {
     });
 
     it('should distribute keys evenly between sites after adding the new site', function () {
+      testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
       assert.equal(resultB.stats.diff < 1.1, true);
     });
 
     it('less than 25% of keys should have changed site after adding the new site to SRH', function () {
       var diffStats = testUtils.getDiffStats(resultA, resultB);
-      var diffPercentage = diffStats.keyList.length / diffStats.diffKeyList.length;
+      var diffPercentage = diffStats.diffKeyList.length / diffStats.keyList.length;
+      testUtils.log(`Moved ${diffStats.diffKeyList.length} keys out of ${diffStats.keyList.length}`);
       assert.equal(diffPercentage < .25, true);
+    });
+  });
+
+  describe('SRH distributes 1000 keys between 3 sites after one site is removed', function () {
+    beforeEach(function () {
+      keyList = testUtils.generateStringList('somekey', 1000);
+      siteList = testUtils.generateStringList('host', 4);
+      srh = new SRH({
+        sites: siteList,
+        base: 2
+      });
+      resultA = testUtils.findKeySites(srh, keyList);
+      removeSiteList = ['host3'];
+      srh.removeSites(removeSiteList);
+      resultB = testUtils.findKeySites(srh, keyList);
+    });
+
+    it('should distribute keys evenly between sites after removing the site', function () {
+      testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
+      assert.equal(resultB.stats.diff < 1.1, true);
+    });
+
+    it('less than 30% of keys should have changed site after removing the site from SRH', function () {
+      var diffStats = testUtils.getDiffStats(resultA, resultB);
+      var diffPercentage = diffStats.diffKeyList.length / diffStats.keyList.length;
+      testUtils.log(`Moved ${diffStats.diffKeyList.length} keys out of ${diffStats.keyList.length}`);
+      assert.equal(diffPercentage < .3, true);
     });
   });
 
@@ -112,13 +141,42 @@ describe('Distribution', function () {
     });
 
     it('should distribute keys evenly between sites after adding the new site', function () {
+      testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
       assert.equal(resultB.stats.diff < 1.3, true);
     });
 
     it('less than 5% of keys should have changed site after adding the new site to SRH', function () {
       var diffStats = testUtils.getDiffStats(resultA, resultB);
-      var diffPercentage = diffStats.keyList.length / diffStats.diffKeyList.length;
+      var diffPercentage = diffStats.diffKeyList.length / diffStats.keyList.length;
+      testUtils.log(`Moved ${diffStats.diffKeyList.length} keys out of ${diffStats.keyList.length}`);
       assert.equal(diffPercentage < .05, true);
+    });
+  });
+
+  describe('SRH distributes 10000 keys between 20 sites after one site is removed', function () {
+    beforeEach(function () {
+      keyList = testUtils.generateStringList('somekey', 10000);
+      siteList = testUtils.generateStringList('host', 21);
+      srh = new SRH({
+        sites: siteList,
+        base: 2
+      });
+      resultA = testUtils.findKeySites(srh, keyList);
+      removeSiteList = ['host9'];
+      srh.removeSites(removeSiteList);
+      resultB = testUtils.findKeySites(srh, keyList);
+    });
+
+    it('should distribute keys evenly between sites after adding the new site', function () {
+      testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
+      assert.equal(resultB.stats.diff < 1.3, true);
+    });
+
+    it('less than 6% of keys should have changed site after removing the site from SRH', function () {
+      var diffStats = testUtils.getDiffStats(resultA, resultB);
+      var diffPercentage = diffStats.diffKeyList.length / diffStats.keyList.length;
+      testUtils.log(`Moved ${diffStats.diffKeyList.length} keys out of ${diffStats.keyList.length}`);
+      assert.equal(diffPercentage < .06, true);
     });
   });
 });
