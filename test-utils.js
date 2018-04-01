@@ -60,7 +60,7 @@ function findKeySites(srh, keys) {
   var end = Date.now();
 
   var siteCountMap = {};
-  srh.sites.forEach((site) => {
+  srh.getSites().forEach((site) => {
     if (siteMap[site]) {
       siteCountMap[site] = siteMap[site].length;
     } else {

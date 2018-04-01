@@ -146,6 +146,8 @@ describe('Distribution', function () {
 
     it('should distribute keys evenly between sites after adding the new site', function () {
       testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
+      console.log('----MAP:', resultB.countMap);// TODO 2
+      console.log('----srh:', srh.clusters);// TODO 2
       assert.equal(resultB.stats.diff < 1.3, true);
     });
 
@@ -212,7 +214,7 @@ describe('Distribution', function () {
   });
 });
 
-describe('Time complexity', function () {
+describe.skip('Time complexity', function () {
   describe('SRH distributes keys in O(log n) time with respect to the number of sites', function () {
     beforeEach(function () {
       keyList = testUtils.generateStringList('somekey', 10000);
