@@ -2,20 +2,23 @@ var crypto = require('crypto');
 
 function SkeletonRendezvousHasher(options) {
   options = options || {};
-  this.base = options.base || 2;
+  if (options.fanout > 9) {
+    throw new Error('The fanout option cannot be higher than 9');
+  }
+  this.fanout = options.fanout || 2;
   this.hashAlgorithm = options.hashAlgorithm || 'md5';
   this.targetClusterSize = options.targetClusterSize || 10;
-  this.minClusterSize = options.minClusterSize || 7;
+  this.minClusterSize = this.targetClusterSize;
   this.clusters = [];
   this.addSites(options.sites);
 };
 
-SkeletonRendezvousHasher.prototype._logx = function (value, base) {
-  return Math.log(value) / Math.log(base);
+SkeletonRendezvousHasher.prototype._logx = function (value, fanout) {
+  return Math.log(value) / Math.log(fanout);
 };
 
-SkeletonRendezvousHasher.prototype._getvirtualLevelCount = function (siteCount, base) {
-  return Math.ceil(this._logx(siteCount, base));
+SkeletonRendezvousHasher.prototype._getvirtualLevelCount = function (siteCount, fanout) {
+  return Math.ceil(this._logx(siteCount, fanout));
 };
 
 SkeletonRendezvousHasher.prototype.hash = function (key) {
@@ -67,7 +70,7 @@ SkeletonRendezvousHasher.prototype._generateClusters = function (sites) {
       });
     }
   }
-  this.virtualLevelCount = this._getvirtualLevelCount(this.clusterCount, this.base);
+  this.virtualLevelCount = this._getvirtualLevelCount(this.clusterCount, this.fanout);
 };
 
 // Time complexity O(n)
@@ -100,7 +103,7 @@ SkeletonRendezvousHasher.prototype.findSite = function (key, salt) {
     var highestHash = null;
     var targetVirtualGroup = 0;
 
-    for (var j = 0; j < this.base; j++) {
+    for (var j = 0; j < this.fanout; j++) {
       var currentHash = this.hash(key + (salt || '') + path + j);
       if (!highestHash || currentHash > highestHash) {
         highestHash = currentHash;
@@ -109,7 +112,7 @@ SkeletonRendezvousHasher.prototype.findSite = function (key, salt) {
     }
     path += targetVirtualGroup.toString();
   }
-  var targetClusterIndex = parseInt(path, this.base) || 0;
+  var targetClusterIndex = parseInt(path, this.fanout) || 0;
   var targetCluster = this.clusters[targetClusterIndex];
 
   if (targetCluster == null) {

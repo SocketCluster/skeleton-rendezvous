@@ -18,7 +18,7 @@ describe('Distribution', function () {
       siteList = testUtils.generateStringList('host', 3);
       srh = new SRH({
         sites: siteList,
-        base: 2
+        fanout: 2
       });
       result = testUtils.findKeySites(srh, keyList);
     });
@@ -50,7 +50,7 @@ describe('Distribution', function () {
       siteList = testUtils.generateStringList('host', 3);
       srh = new SRH({
         sites: siteList,
-        base: 2
+        fanout: 2
       });
       resultA = testUtils.findKeySites(srh, keyList);
       newSiteList = ['newhost0'];
@@ -77,7 +77,7 @@ describe('Distribution', function () {
       siteList = testUtils.generateStringList('host', 4);
       srh = new SRH({
         sites: siteList,
-        base: 2
+        fanout: 2
       });
       resultA = testUtils.findKeySites(srh, keyList);
       removeSiteList = ['host3'];
@@ -104,7 +104,7 @@ describe('Distribution', function () {
       siteList = testUtils.generateStringList('host', 20);
       srh = new SRH({
         sites: siteList,
-        base: 2
+        fanout: 2
       });
       result = testUtils.findKeySites(srh, keyList);
     });
@@ -136,7 +136,7 @@ describe('Distribution', function () {
       siteList = testUtils.generateStringList('host', 20);
       srh = new SRH({
         sites: siteList,
-        base: 2
+        fanout: 2
       });
       resultA = testUtils.findKeySites(srh, keyList);
       newSiteList = ['newhost0'];
@@ -157,13 +157,44 @@ describe('Distribution', function () {
     });
   });
 
+  describe('SRH distributes 10000 keys between 100 sites after one new site is added', function () {
+    beforeEach(function () {
+      keyList = testUtils.generateStringList('somekey', 10000);
+      siteList = testUtils.generateStringList('host', 99);
+      srh = new SRH({
+        sites: siteList,
+        fanout: 2,
+        targetClusterSize: 10
+      });
+      resultA = testUtils.findKeySites(srh, keyList);
+      newSiteList = ['newhost0'];
+      srh.addSites(newSiteList);
+      resultB = testUtils.findKeySites(srh, keyList);
+    });
+
+    it('should distribute keys evenly between sites after adding the new site', function () {
+      testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
+      console.log('virtualLevelCount', srh.virtualLevelCount); // TODO 2
+      console.log('CLUSTERS', srh.clusters); // TODO 2
+      console.log('COUNT MAP', resultB.countMap); // TODO 2
+      assert.equal(resultB.stats.diff < 1.3, true);
+    });
+
+    it('less than 20% of keys should have changed site after adding the new site', function () {
+      var diffStats = testUtils.getDiffStats(resultA, resultB);
+      var diffPercentage = diffStats.diffKeyList.length / diffStats.keyList.length;
+      testUtils.log(`Moved ${diffStats.diffKeyList.length} keys out of ${diffStats.keyList.length}`);
+      assert.equal(diffPercentage < .2, true);
+    });
+  });
+
   describe('SRH distributes 10000 keys between 20 sites after the host9 site is removed', function () {
     beforeEach(function () {
       keyList = testUtils.generateStringList('somekey', 10000);
       siteList = testUtils.generateStringList('host', 21);
       srh = new SRH({
         sites: siteList,
-        base: 2
+        fanout: 2
       });
       resultA = testUtils.findKeySites(srh, keyList);
       removeSiteList = ['host9'];
@@ -190,7 +221,7 @@ describe('Distribution', function () {
       siteList = testUtils.generateStringList('host', 23);
       srh = new SRH({
         sites: siteList,
-        base: 2
+        fanout: 2
       });
       resultA = testUtils.findKeySites(srh, keyList);
       removeSiteList = ['host9', 'host10', 'host22'];
@@ -219,14 +250,14 @@ describe('Time complexity', function () {
       siteList = testUtils.generateStringList('host', 100);
       srh = new SRH({
         sites: siteList,
-        base: 2
+        fanout: 2
       });
       resultA = testUtils.findKeySites(srh, keyList);
 
       siteListB = testUtils.generateStringList('host', 1000);
       srhB = new SRH({
         sites: siteListB,
-        base: 2
+        fanout: 2
       });
       resultB = testUtils.findKeySites(srhB, keyList);
     });
