@@ -38,9 +38,9 @@ describe('Distribution', function () {
       assert.equal(result.stats.diff < 1.3, true);
     });
 
-    it('should take less than 100 ms to complete on a decent machine', function () {
+    it('should take less than 50 ms to complete on a decent machine', function () {
       testUtils.log(`Duration: ${result.stats.duration} ms`);
-      assert.equal(result.stats.duration < 100, true);
+      assert.equal(result.stats.duration < 20, true);
     });
   });
 
@@ -213,7 +213,7 @@ describe('Distribution', function () {
 });
 
 describe('Time complexity', function () {
-  describe('SRH distributes keys in O(log n) time with respect to the number of sites', function () {
+  describe('SRH distributes 10000 keys in O(log n) time with respect to the number of sites', function () {
     beforeEach(function () {
       keyList = testUtils.generateStringList('somekey', 10000);
       siteList = testUtils.generateStringList('host', 100);
@@ -231,8 +231,10 @@ describe('Time complexity', function () {
       resultB = testUtils.findKeySites(srhB, keyList);
     });
 
-    it('should be able to handle 10 times the number of sites while using up less than 50% extra time', function () {
-      assert.equal(resultB.stats.duration / resultA.stats.duration < 1.5, true);
+    it('should be able to handle 10 times the number of sites while using up less than 30% extra time', function () {
+      testUtils.log(`Duration with 100 sites: ${resultA.stats.duration} ms`);
+      testUtils.log(`Duration with 1000 sites: ${resultB.stats.duration} ms`);
+      assert.equal(resultB.stats.duration / resultA.stats.duration < 1.3, true);
     });
   });
 });
