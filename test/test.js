@@ -35,7 +35,7 @@ describe('Distribution', function () {
       // For a large sample of keys across a small number of sites, we want
       // less than 5% difference between the most popular and least popular sites.
       testUtils.log(`Key distribution difference between min and max sites: ${result.stats.diff}`);
-      assert.equal(result.stats.diff < 1.6, true);
+      assert.equal(result.stats.diff < 1.3, true);
     });
 
     it('should take less than 100 ms to complete on a decent machine', function () {
@@ -60,7 +60,7 @@ describe('Distribution', function () {
 
     it('should distribute keys evenly between sites after adding the new site', function () {
       testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
-      assert.equal(resultB.stats.diff < 1.6, true);
+      assert.equal(resultB.stats.diff < 1.3, true);
     });
 
     it('less than 30% of keys should have changed site after adding the new site', function () {
@@ -87,7 +87,7 @@ describe('Distribution', function () {
 
     it('should distribute keys evenly between sites after removing the site', function () {
       testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
-      assert.equal(resultB.stats.diff < 1.6, true);
+      assert.equal(resultB.stats.diff < 1.3, true);
     });
 
     it('less than 30% of keys should have changed site after removing the site', function () {
@@ -121,7 +121,7 @@ describe('Distribution', function () {
       // For a very large sample of keys across a large number of sites, we want
       // less than 30% difference between the most popular and least popular sites.
       testUtils.log(`Key distribution difference between min and max sites: ${result.stats.diff}`);
-      assert.equal(result.stats.diff < 1.6, true);
+      assert.equal(result.stats.diff < 1.3, true);
     });
 
     it('should take less than 500 ms to complete on a decent machine', function () {
@@ -146,7 +146,7 @@ describe('Distribution', function () {
 
     it('should distribute keys evenly between sites after adding the new site', function () {
       testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
-      assert.equal(resultB.stats.diff < 1.6, true);
+      assert.equal(resultB.stats.diff < 1.3, true);
     });
 
     it('less than 5% of keys should have changed site after adding the new site', function () {
@@ -173,7 +173,7 @@ describe('Distribution', function () {
 
     it('should distribute keys evenly between sites after removing the site', function () {
       testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
-      assert.equal(resultB.stats.diff < 1.6, true);
+      assert.equal(resultB.stats.diff < 1.3, true);
     });
 
     it('less than 6% of keys should have changed site after removing the site', function () {
@@ -200,7 +200,7 @@ describe('Distribution', function () {
 
     it('should distribute keys evenly between sites after removing the sites', function () {
       testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
-      assert.equal(resultB.stats.diff < 1.6, true);
+      assert.equal(resultB.stats.diff < 1.3, true);
     });
 
     it('less than 30% of keys should have changed site after removing the sites', function () {
