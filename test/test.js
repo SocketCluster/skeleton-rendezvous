@@ -231,6 +231,27 @@ describe('Distribution', function () {
     });
   });
 
+  describe('SRH distributes 40000 keys between 1000 sites after the host4 site is removed', function () {
+    beforeEach(function () {
+      keyList = testUtils.generateStringList('somekey', 40000);
+      siteList = testUtils.generateStringList('host', 1001);
+      srh = new SRH({
+        sites: siteList
+      });
+      resultA = testUtils.findKeySites(srh, keyList);
+      removeSiteList = ['host4'];
+      srh.removeSites(removeSiteList);
+      resultB = testUtils.findKeySites(srh, keyList);
+    });
+
+    it('less than 15% of keys should have changed site after removing the site', function () {
+      var diffStats = testUtils.getDiffStats(resultA, resultB);
+      var diffPercentage = diffStats.diffKeyList.length / diffStats.keyList.length;
+      testUtils.log(`Moved ${diffStats.diffKeyList.length} keys out of ${diffStats.keyList.length}`);
+      assert.equal(diffPercentage < .15, true);
+    });
+  });
+
   describe('SRH distributes 10000 keys between 20 sites after the host9, host10 and host22 sites are removed', function () {
     beforeEach(function () {
       keyList = testUtils.generateStringList('somekey', 10000);
