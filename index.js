@@ -5,7 +5,7 @@ function SkeletonRendezvousHasher(options) {
   this.base = options.base || 2;
   this.hashAlgorithm = options.hashAlgorithm || 'md5';
   this.targetClusterSize = options.targetClusterSize || 10;
-  this.minClusterSize = options.minClusterSize || 8;
+  this.minClusterSize = options.minClusterSize || 7;
   this.clusters = [];
   this.addSites(options.sites);
 };
@@ -53,6 +53,8 @@ SkeletonRendezvousHasher.prototype._generateClusters = function (sites) {
 
   if (this.clusterCount > 1) {
     var lastCluster = this.clusters[this.clusterCount - 1];
+    // If the last cluster doesn't meet minimum capacity requirements,
+    // then we will spread out its sites evenly between other clusters.
     if (lastCluster.length < this.minClusterSize) {
       this.clusters.pop();
       this.clusterCount--;
@@ -134,10 +136,6 @@ SkeletonRendezvousHasher.prototype._findIndexWithHighestRandomWeight = function 
     }
   });
   return targetIndex;
-};
-
-SkeletonRendezvousHasher.prototype._findSiteClusterIndex = function (site, clusterList) {
-  return this._findIndexWithHighestRandomWeight(site, clusterList);
 };
 
 module.exports = SkeletonRendezvousHasher;
