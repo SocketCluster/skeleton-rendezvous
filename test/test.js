@@ -12,13 +12,13 @@ var resultA;
 var resultB;
 
 describe('Distribution', function () {
+
   describe('SRH distributes 1000 keys between 3 sites', function () {
     beforeEach(function () {
       keyList = testUtils.generateStringList('somekey', 1000);
       siteList = testUtils.generateStringList('host', 3);
       srh = new SRH({
-        sites: siteList,
-        fanout: 2
+        sites: siteList
       });
       result = testUtils.findKeySites(srh, keyList);
     });
@@ -49,8 +49,7 @@ describe('Distribution', function () {
       keyList = testUtils.generateStringList('somekey', 1000);
       siteList = testUtils.generateStringList('host', 3);
       srh = new SRH({
-        sites: siteList,
-        fanout: 2
+        sites: siteList
       });
       resultA = testUtils.findKeySites(srh, keyList);
       newSiteList = ['newhost0'];
@@ -76,8 +75,7 @@ describe('Distribution', function () {
       keyList = testUtils.generateStringList('somekey', 1000);
       siteList = testUtils.generateStringList('host', 4);
       srh = new SRH({
-        sites: siteList,
-        fanout: 2
+        sites: siteList
       });
       resultA = testUtils.findKeySites(srh, keyList);
       removeSiteList = ['host3'];
@@ -103,8 +101,7 @@ describe('Distribution', function () {
       keyList = testUtils.generateStringList('somekey', 10000);
       siteList = testUtils.generateStringList('host', 20);
       srh = new SRH({
-        sites: siteList,
-        fanout: 2
+        sites: siteList
       });
       result = testUtils.findKeySites(srh, keyList);
     });
@@ -135,8 +132,7 @@ describe('Distribution', function () {
       keyList = testUtils.generateStringList('somekey', 20000);
       siteList = testUtils.generateStringList('host', 20);
       srh = new SRH({
-        sites: siteList,
-        fanout: 2
+        sites: siteList
       });
       resultA = testUtils.findKeySites(srh, keyList);
       newSiteList = ['newhost0'];
@@ -162,9 +158,7 @@ describe('Distribution', function () {
       keyList = testUtils.generateStringList('somekey', 40000);
       siteList = testUtils.generateStringList('host', 99);
       srh = new SRH({
-        sites: siteList,
-        fanout: 2,
-        targetClusterSize: 10
+        sites: siteList
       });
       resultA = testUtils.findKeySites(srh, keyList);
       newSiteList = ['newhost0'];
@@ -174,14 +168,14 @@ describe('Distribution', function () {
 
     it('should distribute keys evenly between sites after adding the new site', function () {
       testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
-      assert.equal(resultB.stats.diff < 1.3, true);
+      assert.equal(resultB.stats.diff < 1.35, true);
     });
 
-    it('less than 20% of keys should have changed site after adding the new site', function () {
+    it('less than 10% of keys should have changed site after adding the new site', function () {
       var diffStats = testUtils.getDiffStats(resultA, resultB);
       var diffPercentage = diffStats.diffKeyList.length / diffStats.keyList.length;
       testUtils.log(`Moved ${diffStats.diffKeyList.length} keys out of ${diffStats.keyList.length}`);
-      assert.equal(diffPercentage < .2, true);
+      assert.equal(diffPercentage < .1, true);
     });
   });
 
@@ -190,8 +184,7 @@ describe('Distribution', function () {
       keyList = testUtils.generateStringList('somekey', 10000);
       siteList = testUtils.generateStringList('host', 21);
       srh = new SRH({
-        sites: siteList,
-        fanout: 2
+        sites: siteList
       });
       resultA = testUtils.findKeySites(srh, keyList);
       removeSiteList = ['host9'];
@@ -212,13 +205,38 @@ describe('Distribution', function () {
     });
   });
 
+  describe('SRH distributes 40000 keys between 96 sites after the host11 site is removed', function () {
+    beforeEach(function () {
+      keyList = testUtils.generateStringList('somekey', 40000);
+      siteList = testUtils.generateStringList('host', 97);
+      srh = new SRH({
+        sites: siteList
+      });
+      resultA = testUtils.findKeySites(srh, keyList);
+      removeSiteList = ['host11'];
+      srh.removeSites(removeSiteList);
+      resultB = testUtils.findKeySites(srh, keyList);
+    });
+
+    it('should distribute keys evenly between sites after removing the site', function () {
+      testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
+      assert.equal(resultB.stats.diff < 1.4, true);
+    });
+
+    it('less than 15% of keys should have changed site after removing the site', function () {
+      var diffStats = testUtils.getDiffStats(resultA, resultB);
+      var diffPercentage = diffStats.diffKeyList.length / diffStats.keyList.length;
+      testUtils.log(`Moved ${diffStats.diffKeyList.length} keys out of ${diffStats.keyList.length}`);
+      assert.equal(diffPercentage < .15, true);
+    });
+  });
+
   describe('SRH distributes 10000 keys between 20 sites after the host9, host10 and host22 sites are removed', function () {
     beforeEach(function () {
       keyList = testUtils.generateStringList('somekey', 10000);
       siteList = testUtils.generateStringList('host', 23);
       srh = new SRH({
-        sites: siteList,
-        fanout: 2
+        sites: siteList
       });
       resultA = testUtils.findKeySites(srh, keyList);
       removeSiteList = ['host9', 'host10', 'host22'];
@@ -246,20 +264,18 @@ describe('Time complexity', function () {
       keyList = testUtils.generateStringList('somekey', 10000);
       siteList = testUtils.generateStringList('host', 100);
       srh = new SRH({
-        sites: siteList,
-        fanout: 2
+        sites: siteList
       });
       resultA = testUtils.findKeySites(srh, keyList);
 
       siteListB = testUtils.generateStringList('host', 1000);
       srhB = new SRH({
-        sites: siteListB,
-        fanout: 2
+        sites: siteListB
       });
       resultB = testUtils.findKeySites(srhB, keyList);
     });
 
-    it('should be able to handle 10 times the number of sites while using up less than 30% extra time', function () {
+    it('should be able to handle 10 times the number of sites while using less than 30% extra time', function () {
       testUtils.log(`Duration with 100 sites: ${resultA.stats.duration} ms`);
       testUtils.log(`Duration with 1000 sites: ${resultB.stats.duration} ms`);
       assert.equal(resultB.stats.duration / resultA.stats.duration < 1.3, true);
