@@ -17,8 +17,8 @@ SkeletonRendezvousHasher.prototype._logx = function (value, fanout) {
   return Math.log(value) / Math.log(fanout);
 };
 
-SkeletonRendezvousHasher.prototype._getvirtualLevelCount = function (siteCount, fanout) {
-  return Math.ceil(this._logx(siteCount, fanout));
+SkeletonRendezvousHasher.prototype._getvirtualLevelCount = function (value, fanout) {
+  return Math.ceil(this._logx(value, fanout));
 };
 
 SkeletonRendezvousHasher.prototype.hash = function (key) {
@@ -96,15 +96,22 @@ SkeletonRendezvousHasher.prototype.removeSites = function (sitesToRemove) {
 // Time complexity: O(log n)
 // where n is the total number of sites.
 SkeletonRendezvousHasher.prototype.findSite = function (key, salt) {
-  salt = salt || 0;
+  var saltString;
+  if (salt) {
+    saltString = salt.toString();
+  } else {
+    salt = 0;
+    saltString = '';
+  }
   var path = '';
+  var highestHash;
 
   for (var i = 0; i < this.virtualLevelCount; i++) {
-    var highestHash = null;
+    highestHash = null;
     var targetVirtualGroup = 0;
 
     for (var j = 0; j < this.fanout; j++) {
-      var currentHash = this.hash(key + (salt || '') + path + j);
+      var currentHash = this.hash(key + saltString + i + j);
       if (!highestHash || currentHash > highestHash) {
         highestHash = currentHash;
         targetVirtualGroup = j;
@@ -119,7 +126,7 @@ SkeletonRendezvousHasher.prototype.findSite = function (key, salt) {
     return this.findSite(key, salt + 1);
   }
 
-  var keyIndexWithinCluster = this._findIndexWithHighestRandomWeight(key, targetCluster);
+  var keyIndexWithinCluster = this._findIndexWithHighestRandomWeight(key + salt, targetCluster);
   var targetSite = targetCluster[keyIndexWithinCluster];
   if (targetSite == null) {
     return this.findSite(key, salt + 1);

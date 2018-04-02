@@ -130,9 +130,9 @@ describe('Distribution', function () {
     });
   });
 
-  describe('SRH distributes 10000 keys between 21 sites after one new site is added', function () {
+  describe('SRH distributes 20000 keys between 21 sites after one new site is added', function () {
     beforeEach(function () {
-      keyList = testUtils.generateStringList('somekey', 10000);
+      keyList = testUtils.generateStringList('somekey', 20000);
       siteList = testUtils.generateStringList('host', 20);
       srh = new SRH({
         sites: siteList,
@@ -157,9 +157,9 @@ describe('Distribution', function () {
     });
   });
 
-  describe('SRH distributes 10000 keys between 100 sites after one new site is added', function () {
+  describe('SRH distributes 40000 keys between 100 sites after one new site is added', function () {
     beforeEach(function () {
-      keyList = testUtils.generateStringList('somekey', 10000);
+      keyList = testUtils.generateStringList('somekey', 40000);
       siteList = testUtils.generateStringList('host', 99);
       srh = new SRH({
         sites: siteList,
@@ -174,9 +174,6 @@ describe('Distribution', function () {
 
     it('should distribute keys evenly between sites after adding the new site', function () {
       testUtils.log(`Key distribution difference between min and max sites: ${resultB.stats.diff}`);
-      console.log('virtualLevelCount', srh.virtualLevelCount); // TODO 2
-      console.log('CLUSTERS', srh.clusters); // TODO 2
-      console.log('COUNT MAP', resultB.countMap); // TODO 2
       assert.equal(resultB.stats.diff < 1.3, true);
     });
 
