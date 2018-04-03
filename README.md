@@ -6,7 +6,7 @@ the distribution gets progressively better as you add more keys. It can be confi
 
 Last test results:
 
-```bash
+```
 Distribution
   SRH distributes 1000 keys between 3 sites
     ✓ should return 1000 valid targets
