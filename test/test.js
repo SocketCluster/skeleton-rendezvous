@@ -1,6 +1,6 @@
 var assert = require('assert');
 var testUtils = require('../test-utils');
-var SRH = require('skeleton-rendezvous');
+var SRH = require('../index');
 var srh;
 var srhB;
 var keyList;
