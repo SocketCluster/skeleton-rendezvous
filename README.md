@@ -7,7 +7,7 @@ the distribution gets progressively better as you add more keys. It can be confi
 Last test results:
 
 ```console
-Distribution
+**Distribution**
   SRH distributes 1000 keys between 3 sites
     ✓ should return 1000 valid targets
       Key distribution difference between min and max sites: 1.1596091205211727
