@@ -153,6 +153,53 @@ describe('API', function () {
       assert.equal(error, null);
     });
   });
+
+  describe('Calling setSites with an array of sites should replace all existing sites', function () {
+    beforeEach(function () {
+      siteList = ['foo', 'bar'];
+      keyList = testUtils.generateStringList('somekey', 1000);
+      srh = new SRH({
+        sites: siteList,
+        targetClusterSize: 16
+      });
+
+      siteList = ['hello', 'world'];
+      srh.setSites(siteList);
+
+      result = testUtils.findKeySites(srh, keyList);
+    });
+
+    it('should map keys across latest sites list', function () {
+      assert.equal(JSON.stringify(Object.keys(result.countMap)), JSON.stringify(['hello', 'world']));
+    });
+  });
+
+  describe('Calling setSites with a single site string should replace all existing sites', function () {
+    beforeEach(function () {
+      error = null;
+      keyList = testUtils.generateStringList('somekey', 1000);
+      srh = new SRH({
+        sites: siteList,
+        targetClusterSize: 16
+      });
+
+      try {
+        srh.setSites('hello');
+      } catch (err) {
+        error = err;
+      }
+
+      result = testUtils.findKeySites(srh, keyList);
+    });
+
+    it('should not throw error', function () {
+      assert.equal(error, null);
+    });
+
+    it('should map keys across latest sites list', function () {
+      assert.equal(JSON.stringify(Object.keys(result.countMap)), JSON.stringify(['hello']));
+    });
+  });
 });
 
 describe('Distribution', function () {

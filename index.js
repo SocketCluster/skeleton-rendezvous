@@ -84,6 +84,13 @@ SkeletonRendezvousHasher.prototype._generateClusters = function (sites) {
 
 // Time complexity O(n)
 // where n is the total number of sites.
+SkeletonRendezvousHasher.prototype.setSites = function (sitesToSet) {
+  var sites = [].concat(sitesToSet);
+  this._generateClusters(sites);
+};
+
+// Time complexity O(n)
+// where n is the total number of sites.
 SkeletonRendezvousHasher.prototype.addSites = function (sitesToAdd) {
   var sites = this.getSites().concat(sitesToAdd);
   this._generateClusters(sites);
