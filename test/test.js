@@ -7,12 +7,155 @@ var keyList;
 var siteList;
 var siteListB;
 var newSiteList;
+var error;
 var result;
 var resultA;
 var resultB;
 
-describe('Distribution', function () {
+describe('API', function () {
+  describe('When adding a site twice during instantiation', function () {
+    beforeEach(function () {
+      siteList = ['foo', 'bar', 'site', 'bar'];
+      srh = new SRH({
+        sites: siteList,
+        targetClusterSize: 16
+      });
+    });
 
+    it('should not contain duplicate sites', function () {
+      assert.equal(JSON.stringify(srh.clusters[0]), JSON.stringify(['bar', 'foo', 'site']));
+    });
+  });
+
+  describe('When adding a site a second time after instantiation', function () {
+    beforeEach(function () {
+      siteList = ['foo', 'bar', 'site'];
+      srh = new SRH({
+        sites: siteList,
+        targetClusterSize: 16
+      });
+
+      srh.addSites(['bar', '123']);
+    });
+
+    it('should not contain duplicate sites', function () {
+      assert.equal(JSON.stringify(srh.clusters[0]), JSON.stringify(['123', 'bar', 'foo', 'site']));
+    });
+  });
+
+  describe('When adding a site as a string argument instead of an array', function () {
+    beforeEach(function () {
+      siteList = ['foo'];
+      srh = new SRH({
+        sites: siteList,
+        targetClusterSize: 16
+      });
+
+      srh.addSites('bar');
+    });
+
+    it('should add the site', function () {
+      assert.equal(JSON.stringify(srh.clusters[0]), JSON.stringify(['bar', 'foo']));
+    });
+  });
+
+  describe('When trying to find a site when the sites list is empty', function () {
+    beforeEach(function () {
+      error = null;
+      siteList = [];
+      srh = new SRH({
+        sites: siteList,
+        targetClusterSize: 16
+      });
+      try {
+        result = srh.findSite('somekey');
+      } catch (err) {
+        error = err;
+      }
+    });
+
+    it('should not throw an error', function () {
+      assert.equal(error, null);
+    });
+
+    it('result should be null', function () {
+      assert.equal(result, null);
+    });
+  });
+
+  describe('When trying to remove a site which is not in the list', function () {
+    beforeEach(function () {
+      error = null;
+      siteList = ['foo', 'bar'];
+      srh = new SRH({
+        sites: siteList,
+        targetClusterSize: 16
+      });
+
+      try {
+        srh.removeSites(['bar', 'hello']);
+      } catch (err) {
+        error = err;
+      }
+    });
+
+    it('should not throw an error', function () {
+      assert.equal(error, null);
+    });
+
+    it('should have removed the sites that were in the sites list', function () {
+      assert.equal(JSON.stringify(srh.clusters[0]), JSON.stringify(['foo']));
+    });
+  });
+
+  describe('When trying to remove a single site as a string instead of an array', function () {
+    beforeEach(function () {
+      error = null;
+      siteList = ['foo', 'bar'];
+      srh = new SRH({
+        sites: siteList,
+        targetClusterSize: 16
+      });
+
+      try {
+        srh.removeSites('bar');
+      } catch (err) {
+        error = err;
+      }
+    });
+
+    it('should not throw an error', function () {
+      assert.equal(error, null);
+    });
+
+    it('should have removed the site', function () {
+      assert.equal(JSON.stringify(srh.clusters[0]), JSON.stringify(['foo']));
+    });
+  });
+
+  describe('When passing null as the argument to findSite', function () {
+    beforeEach(function () {
+      error = null;
+      siteList = ['foo', 'bar'];
+      srh = new SRH({
+        sites: siteList,
+        targetClusterSize: 16
+      });
+
+      try {
+        result = srh.findSite(null);
+      } catch (err) {
+        error = err;
+      }
+    });
+
+    it('should not throw an error', function () {
+      assert.equal(error, null);
+    });
+  });
+});
+
+describe('Distribution', function () {
   describe('SRH distributes 1000 keys between 3 sites', function () {
     beforeEach(function () {
       keyList = testUtils.generateStringList('somekey', 1000);
