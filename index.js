@@ -38,6 +38,15 @@ SkeletonRendezvousHasher.prototype.getSites = function () {
 };
 
 SkeletonRendezvousHasher.prototype._generateClusters = function (sites) {
+  var siteLookup = {};
+  // Remove duplicates.
+  sites = sites.filter((site) => {
+    if (!siteLookup[site]) {
+      siteLookup[site] = true;
+      return true;
+    }
+    return false;
+  });
   sites.sort();
   this.clusters = [];
   this.clusterCount = Math.ceil(sites.length / this.targetClusterSize);
@@ -83,6 +92,9 @@ SkeletonRendezvousHasher.prototype.addSites = function (sitesToAdd) {
 // Time complexity O(n)
 // where n is the total number of sites.
 SkeletonRendezvousHasher.prototype.removeSites = function (sitesToRemove) {
+  if (!Array.isArray(sitesToRemove)) {
+    sitesToRemove = [sitesToRemove];
+  }
   var removeSiteLookup = {};
   sitesToRemove.forEach((site) => {
     removeSiteLookup[site] = true;
@@ -122,6 +134,10 @@ SkeletonRendezvousHasher.prototype.findSite = function (key, salt) {
   var targetCluster = this.clusters[targetClusterIndex];
 
   if (targetCluster == null) {
+    if (targetClusterIndex === 0) {
+      // No available target.
+      return null;
+    }
     return this.findSite(key, salt + 1);
   }
 
