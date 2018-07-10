@@ -10,7 +10,9 @@ function SkeletonRendezvousHasher(options) {
   this.targetClusterSize = options.targetClusterSize || 16;
   this.minClusterSize = options.minClusterSize || this.targetClusterSize;
   this.clusters = [];
-  this.addSites(options.sites);
+  if (options.sites) {
+    this.addSites(options.sites);
+  }
 };
 
 SkeletonRendezvousHasher.prototype._logx = function (value, fanout) {
