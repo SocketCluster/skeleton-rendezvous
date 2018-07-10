@@ -1,6 +1,6 @@
 {
   "name": "skeleton-rendezvous",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Module for performing fast rendezvous (HRW) hashing with skeleton - Can efficiently handle a large number of machines/sites.",
   "main": "index.js",
   "scripts": {
