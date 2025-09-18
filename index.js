@@ -5,6 +5,9 @@ function SkeletonRendezvousHasher(options) {
   if (options.fanout > 9) {
     throw new Error('The fanout option cannot be higher than 9');
   }
+  if (options.fanout < 2) {
+    throw new Error('The fanout option cannot be less than 2');
+  }
   this.fanout = options.fanout || 2;
   this.hashAlgorithm = options.hashAlgorithm || 'md5';
   this.targetClusterSize = options.targetClusterSize || 16;
