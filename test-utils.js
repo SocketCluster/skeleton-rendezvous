@@ -2,21 +2,22 @@ module.exports = {
   generateStringList: generateStringList,
   findKeySites: findKeySites,
   getDiffStats: getDiffStats,
+  getMultiSiteKeyList: getMultiSiteKeyList,
   log: log
 };
 
 function generateStringList(baseString, count) {
-  var items = [];
-  for (var i = 0; i < count; i++) {
+  let items = [];
+  for (let i = 0; i < count; i++) {
     items.push(baseString + i);
   }
   return items;
 }
 
 function getDistributionStats(countMap) {
-  var minKeys = Infinity;
-  var maxKeys = -Infinity;
-  var diff;
+  let minKeys = Infinity;
+  let maxKeys = -Infinity;
+  let diff;
 
   Object.keys(countMap).forEach((site) => {
     if (countMap[site] < minKeys) {
@@ -36,20 +37,20 @@ function getDistributionStats(countMap) {
 }
 
 function findKeySites(srh, keys) {
-  var hashCount = 0;
-  var realHashFn = srh.hash;
+  let hashCount = 0;
+  let realHashFn = srh.hash;
 
   srh.hash = function () {
     hashCount++;
     return realHashFn.apply(this, arguments);
   };
 
-  var siteMap = {};
-  var results = [];
+  let siteMap = {};
+  let results = [];
 
-  var start = Date.now();
+  let start = Date.now();
   keys.forEach((key) => {
-    var targetSite = srh.findSite(key);
+    let targetSite = srh.findSite(key);
 
     results.push(targetSite);
     if (!siteMap[targetSite]) {
@@ -57,9 +58,9 @@ function findKeySites(srh, keys) {
     }
     siteMap[targetSite].push(key);
   });
-  var end = Date.now();
+  let end = Date.now();
 
-  var siteCountMap = {};
+  let siteCountMap = {};
   srh.getSites().forEach((site) => {
     if (siteMap[site]) {
       siteCountMap[site] = siteMap[site].length;
@@ -68,7 +69,7 @@ function findKeySites(srh, keys) {
     }
   });
 
-  var stats = getDistributionStats(siteCountMap);
+  let stats = getDistributionStats(siteCountMap);
   stats.startTime = start;
   stats.endTime = end;
   stats.duration = end - start;
@@ -83,31 +84,31 @@ function findKeySites(srh, keys) {
 }
 
 function getDiffStats(resultA, resultB) {
-  var siteMapA = resultA.map;
-  var siteMapB = resultB.map;
+  let siteMapA = resultA.map;
+  let siteMapB = resultB.map;
 
-  var keyToSiteMapA = {};
+  let keyToSiteMapA = {};
   Object.keys(siteMapA).forEach((site) => {
-    var keyList = siteMapA[site] || [];
+    let keyList = siteMapA[site] || [];
     keyList.forEach((key) => {
       keyToSiteMapA[key] = site;
     });
   });
 
-  var keyToSiteMapB = {};
+  let keyToSiteMapB = {};
   Object.keys(siteMapB).forEach((site) => {
-    var keyList = siteMapB[site] || [];
+    let keyList = siteMapB[site] || [];
     keyList.forEach((key) => {
       keyToSiteMapB[key] = site;
     });
   });
 
-  var keyLookup = {};
-  var diffKeyLookup = {};
+  let keyLookup = {};
+  let diffKeyLookup = {};
 
   Object.keys(keyToSiteMapA).forEach((key) => {
-    var siteA = keyToSiteMapA[key];
-    var siteB = keyToSiteMapB[key];
+    let siteA = keyToSiteMapA[key];
+    let siteB = keyToSiteMapB[key];
     if (siteA !== siteB) {
       diffKeyLookup[key] = true;
     }
@@ -115,8 +116,8 @@ function getDiffStats(resultA, resultB) {
   });
 
   Object.keys(keyToSiteMapB).forEach((key) => {
-    var siteA = keyToSiteMapA[key];
-    var siteB = keyToSiteMapB[key];
+    let siteA = keyToSiteMapA[key];
+    let siteB = keyToSiteMapB[key];
     if (siteA !== siteB) {
       diffKeyLookup[key] = true;
     }
@@ -127,6 +128,28 @@ function getDiffStats(resultA, resultB) {
     keyList: Object.keys(keyLookup),
     diffKeyList: Object.keys(diffKeyLookup)
   };
+}
+
+// Returns the keys which more than one site lays claim to. Each key is looked
+// up several times so that a lookup which does not always land on the same site
+// shows up as two sites owning the same key.
+function getMultiSiteKeyList(srh, keys, lookupCount) {
+  lookupCount = lookupCount || 3;
+
+  let keyToSiteLookup = {};
+  keys.forEach((key) => {
+    keyToSiteLookup[key] = {};
+  });
+
+  for (let i = 0; i < lookupCount; i++) {
+    keys.forEach((key) => {
+      keyToSiteLookup[key][srh.findSite(key)] = true;
+    });
+  }
+
+  return keys.filter((key) => {
+    return Object.keys(keyToSiteLookup[key]).length !== 1;
+  });
 }
 
 function log() {

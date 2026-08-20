@@ -1,4 +1,4 @@
-var crypto = require('crypto');
+let crypto = require('crypto');
 
 function SkeletonRendezvousHasher(options) {
   options = options || {};
@@ -11,39 +11,106 @@ function SkeletonRendezvousHasher(options) {
   this.fanout = options.fanout || 2;
   this.hashAlgorithm = options.hashAlgorithm || 'md5';
   this.targetClusterSize = options.targetClusterSize || 16;
-  this.minClusterSize = options.minClusterSize || this.targetClusterSize;
-  this.clusters = [];
-  if (options.sites) {
-    this.addSites(options.sites);
+  let hexHashLength = this.hash('').length;
+  this._unitIntervalHexDigits = Math.min(13, hexHashLength);
+  this._unitIntervalUpperBound = Math.pow(16, this._unitIntervalHexDigits) + 1;
+
+  this._virtualGroupHexDigits = Math.min(13, Math.floor(hexHashLength / this.fanout));
+  if (this._virtualGroupHexDigits < 4) {
+    this._virtualGroupHexDigits = 0;
   }
+  this._virtualGroupUpperBound = Math.pow(16, this._virtualGroupHexDigits) + 1;
+  this.sites = [];
+  this.clusters = [];
+  this._generateClusters(options.sites ? [].concat(options.sites) : []);
 };
 
 SkeletonRendezvousHasher.prototype._logx = function (value, fanout) {
   return Math.log(value) / Math.log(fanout);
 };
 
-SkeletonRendezvousHasher.prototype._getvirtualLevelCount = function (value, fanout) {
-  return Math.ceil(this._logx(value, fanout));
-};
-
 SkeletonRendezvousHasher.prototype.hash = function (key) {
-  var hasher = crypto.createHash(this.hashAlgorithm);
+  let hasher = crypto.createHash(this.hashAlgorithm);
   hasher.update(key);
   return hasher.digest('hex');
 };
 
+SkeletonRendezvousHasher.prototype._hashToUnitInterval = function (item) {
+  // 13 hex digits is 52 bits, which is the most that fits exactly in a double.
+  let intHash = parseInt(this.hash(item).substr(0, this._unitIntervalHexDigits), 16);
+  return (intHash + 1) / this._unitIntervalUpperBound;
+};
+
+SkeletonRendezvousHasher.prototype._readVirtualGroupUnitHash = function (levelHash, virtualGroup) {
+  let hexDigits = this._virtualGroupHexDigits;
+  let intHash = parseInt(levelHash.substr(virtualGroup * hexDigits, hexDigits), 16);
+  return (intHash + 1) / this._virtualGroupUpperBound;
+};
+
+// The chance of a candidate producing the highest score is proportional to its
+// weight, and changing one weight only disturbs a proportional share of the
+// items which were passing through it.
+SkeletonRendezvousHasher.prototype._getWeightedScore = function (unitHash, weight) {
+  return -weight / Math.log(unitHash);
+};
+
 SkeletonRendezvousHasher.prototype.getSites = function () {
-  var sites = [];
-  this.clusters.forEach((clusterSites) => {
-    clusterSites.forEach((site) => {
-      sites.push(site);
-    });
+  return this.sites.slice();
+};
+
+// The branch depends only on the site's own name, so adding or removing a site
+// never changes the branch taken by any other site.
+SkeletonRendezvousHasher.prototype._findSiteVirtualGroup = function (site, level) {
+  let levelPrefix = 'site:' + site + ':' + level;
+  let levelHash = this._virtualGroupHexDigits ? this.hash(levelPrefix) : null;
+  let hexDigits = this._virtualGroupHexDigits;
+  let highestHash = null;
+  let targetVirtualGroup = 0;
+
+  for (let j = 0; j < this.fanout; j++) {
+    let currentHash = levelHash === null ?
+      this.hash(levelPrefix + ':' + j) :
+      levelHash.substr(j * hexDigits, hexDigits);
+    if (highestHash == null || currentHash > highestHash) {
+      highestHash = currentHash;
+      targetVirtualGroup = j;
+    }
+  }
+  return targetVirtualGroup;
+};
+
+// The depth is decided per branch rather than globally, so a branch which grows
+// past targetClusterSize splits without disturbing any of the others.
+SkeletonRendezvousHasher.prototype._partitionSites = function (siteList, path) {
+  this.virtualGroupWeights[path] = siteList.length;
+  if (!siteList.length) {
+    return;
+  }
+
+  if (siteList.length <= this.targetClusterSize * this.fanout || path.length >= this._maxVirtualLevelCount) {
+    this._clusterIndexLookup[path] = this.clusters.length;
+    this.clusters.push(siteList);
+    if (path.length > this.virtualLevelCount) {
+      this.virtualLevelCount = path.length;
+    }
+    return;
+  }
+
+  let virtualGroups = [];
+  for (let j = 0; j < this.fanout; j++) {
+    virtualGroups[j] = [];
+  }
+  let level = path.length;
+  siteList.forEach((site) => {
+    virtualGroups[this._findSiteVirtualGroup(site, level)].push(site);
   });
-  return sites;
+  for (let j = 0; j < this.fanout; j++) {
+    this._partitionSites(virtualGroups[j], path + j);
+  }
 };
 
 SkeletonRendezvousHasher.prototype._generateClusters = function (sites) {
-  var siteLookup = {};
+  let siteLookup = {};
   // Remove duplicates.
   sites = sites.filter((site) => {
     if (!siteLookup[site]) {
@@ -53,65 +120,48 @@ SkeletonRendezvousHasher.prototype._generateClusters = function (sites) {
     return false;
   });
   sites.sort();
+  this.sites = sites;
+
   this.clusters = [];
-  this.clusterCount = Math.ceil(sites.length / this.targetClusterSize);
-  for (var i = 0; i < this.clusterCount; i++) {
-    this.clusters[i] = [];
-  }
+  // Records how many sites sit underneath each node of the skeleton. Cluster
+  // sizes vary because membership is decided by hashing, so findSite uses these
+  // counts to hand each cluster a matching share of the keys.
+  this.virtualGroupWeights = {};
+  this._clusterIndexLookup = {};
+  this.virtualLevelCount = 0;
+  // Only a backstop against pathological hash collisions - the partitioning
+  // stops as soon as a group fits inside targetClusterSize.
+  this._maxVirtualLevelCount = Math.max(1, Math.ceil(this._logx(Math.max(sites.length, 2), this.fanout)) + 12);
 
-  var clusterIndex = 0;
-  sites.forEach((site) => {
-    var cluster = this.clusters[clusterIndex];
-    cluster.push(site);
-    if (cluster.length >= this.targetClusterSize) {
-      clusterIndex++;
-    }
-  });
-
-  if (this.clusterCount > 1) {
-    var lastCluster = this.clusters[this.clusterCount - 1];
-    // If the last cluster doesn't meet minimum capacity requirements,
-    // then we will spread out its sites evenly between other clusters.
-    if (lastCluster.length < this.minClusterSize) {
-      this.clusters.pop();
-      this.clusterCount--;
-      clusterIndex = 0;
-
-      lastCluster.forEach((site) => {
-        var cluster = this.clusters[clusterIndex];
-        cluster.push(site);
-        clusterIndex = (clusterIndex + 1) % this.clusterCount;
-      });
-    }
-  }
-  this.virtualLevelCount = this._getvirtualLevelCount(this.clusterCount, this.fanout);
+  this._partitionSites(sites, '');
+  this.clusterCount = this.clusters.length;
 };
 
-// Time complexity O(n)
+// Time complexity O(n log n)
 // where n is the total number of sites.
 SkeletonRendezvousHasher.prototype.setSites = function (sitesToSet) {
-  var sites = [].concat(sitesToSet);
+  let sites = [].concat(sitesToSet);
   this._generateClusters(sites);
 };
 
-// Time complexity O(n)
+// Time complexity O(n log n)
 // where n is the total number of sites.
 SkeletonRendezvousHasher.prototype.addSites = function (sitesToAdd) {
-  var sites = this.getSites().concat(sitesToAdd);
+  let sites = this.getSites().concat(sitesToAdd);
   this._generateClusters(sites);
 };
 
-// Time complexity O(n)
+// Time complexity O(n log n)
 // where n is the total number of sites.
 SkeletonRendezvousHasher.prototype.removeSites = function (sitesToRemove) {
   if (!Array.isArray(sitesToRemove)) {
     sitesToRemove = [sitesToRemove];
   }
-  var removeSiteLookup = {};
+  let removeSiteLookup = {};
   sitesToRemove.forEach((site) => {
     removeSiteLookup[site] = true;
   });
-  var sites = this.getSites().filter((site) => {
+  let sites = this.getSites().filter((site) => {
     return !removeSiteLookup[site];
   });
   this._generateClusters(sites);
@@ -120,53 +170,67 @@ SkeletonRendezvousHasher.prototype.removeSites = function (sitesToRemove) {
 // Time complexity: O(log n)
 // where n is the total number of sites.
 SkeletonRendezvousHasher.prototype.findSite = function (key, salt) {
-  var saltString;
+  let saltString;
   if (salt) {
     saltString = salt.toString();
   } else {
     salt = 0;
     saltString = '';
   }
-  var path = '';
+  let path = '';
+  let keyPrefix = 'key:' + key + ':' + saltString + ':';
+  let targetClusterIndex = this._clusterIndexLookup[path];
 
-  for (var i = 0; i < this.virtualLevelCount; i++) {
-    var highestHash = null;
-    var targetVirtualGroup = 0;
+  while (targetClusterIndex === undefined) {
+    let highestScore = null;
+    let targetVirtualGroup = -1;
+    let levelPrefix = keyPrefix + path.length;
+    let levelHash = this._virtualGroupHexDigits ? this.hash(levelPrefix) : null;
 
-    for (var j = 0; j < this.fanout; j++) {
-      var currentHash = this.hash(key + saltString + i + j);
-      if (!highestHash || currentHash > highestHash) {
-        highestHash = currentHash;
+    for (let j = 0; j < this.fanout; j++) {
+      let siteCount = this.virtualGroupWeights[path + j] || 0;
+      // An empty branch can never win, so the walk cannot dead-end on a
+      // cluster with no sites in it.
+      if (siteCount === 0) {
+        continue;
+      }
+      let unitHash = levelHash === null ?
+        this._hashToUnitInterval(levelPrefix + ':' + j) :
+        this._readVirtualGroupUnitHash(levelHash, j);
+      // Weighting by site count keeps keys per site even despite uneven
+      // cluster sizes.
+      let currentScore = this._getWeightedScore(unitHash, siteCount);
+      if (highestScore == null || currentScore > highestScore) {
+        highestScore = currentScore;
         targetVirtualGroup = j;
       }
     }
-    path += targetVirtualGroup.toString();
-  }
-  var targetClusterIndex = parseInt(path, this.fanout) || 0;
-  var targetCluster = this.clusters[targetClusterIndex];
-
-  if (targetCluster == null) {
-    if (targetClusterIndex === 0) {
+    if (targetVirtualGroup < 0) {
       // No available target.
       return null;
     }
-    return this.findSite(key, salt + 1);
+    path += targetVirtualGroup.toString();
+    targetClusterIndex = this._clusterIndexLookup[path];
   }
 
-  var keyIndexWithinCluster = this._findIndexWithHighestRandomWeight(key + salt + path, targetCluster);
-  var targetSite = targetCluster[keyIndexWithinCluster];
+  let targetCluster = this.clusters[targetClusterIndex];
+  // The path is deliberately left out of the rendezvous input - it keeps the
+  // winner the same when clusters merge or split, so a resize only moves the
+  // keys which genuinely have to move.
+  let keyIndexWithinCluster = this._findIndexWithHighestRandomWeight(key + salt, targetCluster);
+  let targetSite = targetCluster[keyIndexWithinCluster];
   if (targetSite == null) {
-    return this.findSite(key, salt + 1);
+    return null;
   }
   return targetSite;
 };
 
 SkeletonRendezvousHasher.prototype._findIndexWithHighestRandomWeight = function (item, list) {
-  var targetIndex = 0;
-  var highestHash = null;
+  let targetIndex = 0;
+  let highestHash = null;
 
   (list || []).forEach((candidate, index) => {
-    var currentHash = this.hash(item + candidate);
+    let currentHash = this.hash(item + candidate);
     if (!highestHash || currentHash > highestHash) {
       highestHash = currentHash;
       targetIndex = index;
