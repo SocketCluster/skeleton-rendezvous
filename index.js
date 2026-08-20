@@ -37,13 +37,13 @@ SkeletonRendezvousHasher.prototype.hash = function (key) {
 
 SkeletonRendezvousHasher.prototype._hashToUnitInterval = function (item) {
   // 13 hex digits is 52 bits, which is the most that fits exactly in a double.
-  let intHash = parseInt(this.hash(item).substr(0, this._unitIntervalHexDigits), 16);
+  let intHash = parseInt(this.hash(item).slice(0, this._unitIntervalHexDigits), 16);
   return (intHash + 1) / this._unitIntervalUpperBound;
 };
 
 SkeletonRendezvousHasher.prototype._readVirtualGroupUnitHash = function (levelHash, virtualGroup) {
   let hexDigits = this._virtualGroupHexDigits;
-  let intHash = parseInt(levelHash.substr(virtualGroup * hexDigits, hexDigits), 16);
+  let intHash = parseInt(levelHash.slice(virtualGroup * hexDigits, (virtualGroup + 1) * hexDigits), 16);
   return (intHash + 1) / this._virtualGroupUpperBound;
 };
 
@@ -70,7 +70,7 @@ SkeletonRendezvousHasher.prototype._findSiteVirtualGroup = function (site, level
   for (let j = 0; j < this.fanout; j++) {
     let currentHash = levelHash === null ?
       this.hash(levelPrefix + ':' + j) :
-      levelHash.substr(j * hexDigits, hexDigits);
+      levelHash.slice(j * hexDigits, (j + 1) * hexDigits);
     if (highestHash == null || currentHash > highestHash) {
       highestHash = currentHash;
       targetVirtualGroup = j;
